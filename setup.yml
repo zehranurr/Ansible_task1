@@ -1,0 +1,43 @@
+- hosts: ubuntu_containers
+  become: yes
+  tasks:
+    - name: Update apt packages
+      apt:
+        update_cache: yes
+
+    - name: Install dependencies
+      apt:
+        name: ['openjdk-11-jdk', 'python3-pip', 'wget']
+        state: present
+
+    - name: Install Kafka
+      shell: |
+        wget https://archive.apache.org/dist/kafka/3.2.1/kafka_2.13-3.2.1.tgz
+        tar -xzf kafka_2.13-3.2.1.tgz
+        mv kafka_2.13-3.2.1 /opt/kafka
+        rm kafka_2.13-3.2.1.tgz
+
+    - name: Install python3-venv package
+      apt:
+        name: python3-venv
+        state: present
+        update_cache: yes
+
+    - name: Create a virtual environment
+      ansible.builtin.command:
+        cmd: python3 -m venv /opt/venv/ray_env
+      args:
+        creates: /opt/venv/ray_env
+
+    - name: Install Ray in virtual environment
+      ansible.builtin.command:
+        cmd: /opt/venv/ray_env/bin/pip install -U ray
+
+    - name: Verify Ray installation
+      shell: |
+        /opt/venv/ray_env/bin/ray --version
+      register: ray_version_output
+
+    - name: Print Ray version
+      debug:
+        msg: "Ray version installed: {{ ray_version_output.stdout }}"
